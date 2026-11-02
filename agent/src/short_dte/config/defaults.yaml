@@ -1,0 +1,15 @@
+schema_version: 1
+mode: research
+live_trading_enabled: false
+universe: [SPX, SPY, QQQ]
+exchange_timezone: America/New_York
+freshness:
+  underlying_quote_seconds: 3
+  option_quote_seconds: 5
+  chain_snapshot_seconds: 15
+  economic_calendar_minutes: 60
+buckets:
+  zero_dte: {enabled: false, minimum_score: 75}
+  one_dte: {enabled: false, minimum_score: 72}
+  two_three_dte: {enabled: false, minimum_score: 70}
+  four_seven_dte: {enabled: false, minimum_score: 68}
