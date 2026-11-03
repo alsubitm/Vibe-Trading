@@ -5,6 +5,7 @@ import logging
 from uuid import UUID
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 from src.governance.ledger import verify_chain
@@ -170,6 +171,17 @@ def test_invalid_config_fails(tmp_path, raw):
     path = tmp_path / "bad.yaml"
     path.write_text(raw, encoding="utf-8")
     with pytest.raises((ValueError, ValidationError)):
+        load_config(path)
+
+
+@pytest.mark.parametrize("raw", [
+    "schema_version: 1\nvalue: !!python/object:builtins.object {}",
+    "schema_version: 1\n---\nschema_version: 1\n",
+])
+def test_config_safe_parser_rejects_object_tags_and_multiple_documents(tmp_path, raw):
+    path = tmp_path / "unsafe.yaml"
+    path.write_text(raw, encoding="utf-8")
+    with pytest.raises(yaml.YAMLError):
         load_config(path)
 
 

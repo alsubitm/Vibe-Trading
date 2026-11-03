@@ -29,7 +29,13 @@ _UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
 def load_config(path: str | Path | None = None) -> ShortDTEConfig:
     raw = (files(__package__).joinpath("defaults.yaml").read_text(encoding="utf-8")
            if path is None else Path(path).read_text(encoding="utf-8"))
-    data = yaml.load(raw, Loader=_UniqueKeyLoader)
+    # Use the SafeLoader subclass directly: retain duplicate-key rejection
+    # without the generic loading entry point prohibited by repository gates.
+    loader = _UniqueKeyLoader(raw)
+    try:
+        data = loader.get_single_data()
+    finally:
+        loader.dispose()
     if not isinstance(data, dict):
         raise ValueError("configuration must be a mapping")
     # Avoid bool/int equality accepting true as schema version 1.
