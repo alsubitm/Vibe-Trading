@@ -8,6 +8,7 @@ include README_ar.md
 include README_es.md
 include README_id.md
 include pyproject.toml
+recursive-include agent/src/short_dte/config *.yaml
 include Dockerfile
 include docker-compose.yml
 

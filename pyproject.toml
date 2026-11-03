@@ -117,6 +117,7 @@ include = ["src*", "backtest*", "cli*", "evals*"]
 
 [tool.setuptools.package-data]
 "src" = [
+    "short_dte/config/*.yaml",
     "skills/**/*.md",
     "skills/**/*.yaml",
     "skills/**/*.json",
