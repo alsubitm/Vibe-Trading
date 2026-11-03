@@ -17,10 +17,10 @@ class OptionLeg(DomainModel):
     side: Literal["BUY", "SELL"]
     quantity: Quantity
     expected_price: NonnegativeMoney
-    delta: float
-    gamma: float
+    delta: Annotated[float, Field(ge=-1, le=1)]
+    gamma: Annotated[float, Field(ge=0)]
     theta: float
-    vega: float
+    vega: Annotated[float, Field(ge=0)]
 
 
 class ExitPlan(DomainModel):

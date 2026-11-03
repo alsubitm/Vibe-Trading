@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import Field, StrictBool, model_validator
+from pydantic import Field, StrictBool, field_validator, model_validator
 
 from ..domain.base import DomainModel, Quantity
 
@@ -32,6 +32,20 @@ class ShortDTEConfig(DomainModel):
     exchange_timezone: Literal["America/New_York"] = "America/New_York"
     freshness: FreshnessConfig = FreshnessConfig()
     buckets: DTEConfig = DTEConfig()
+
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def strict_schema_version(cls, value):
+        if type(value) is not int or value != 1:
+            raise ValueError("unsupported configuration schema_version")
+        return value
+
+    @field_validator("live_trading_enabled", mode="before")
+    @classmethod
+    def strict_live_disabled(cls, value):
+        if value is not False:
+            raise ValueError("live trading is unavailable")
+        return value
 
     @model_validator(mode="after")
     def validate_universe(self):

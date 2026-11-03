@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from src.governance.ledger import verify_chain
 from src.short_dte.config.loader import config_hash, load_config
+from src.short_dte.config.models import ShortDTEConfig
 from src.short_dte.data.clock import MarketSession, dte_bucket, market_clock, require_fresh
 from src.short_dte.domain.enums import DTEBucket, SessionPhase
 from src.short_dte.domain.market import UnderlyingBar, UnderlyingQuote
@@ -229,3 +230,32 @@ def test_order_candidate_portfolio_roundtrips_and_validation():
     assert PortfolioState.model_validate_json(portfolio.model_dump_json()) == portfolio
     with pytest.raises(ValidationError):
         OptionLeg(**(leg.model_dump() | {"quantity": 0}))
+
+
+@pytest.mark.parametrize("changes", [
+    {"schema_version": True}, {"schema_version": 1.0},
+    {"live_trading_enabled": 0},
+])
+def test_direct_config_construction_rejects_coerced_safety_fields(changes):
+    with pytest.raises(ValidationError):
+        ShortDTEConfig(**({"schema_version": 1} | changes))
+
+
+def test_audit_redacts_tuple_details_before_serialization(tmp_path, caplog):
+    event = make_event(config=load_config(), event_id=UUID(int=1), timestamp=NOW,
+                       run_id="test", event_type="fixture")
+    details = {"items": ({"api_key": "tuple-fixture-secret"},)}
+    path = tmp_path / "research.jsonl"
+    write_audit(path, event, details)
+    with caplog.at_level(logging.INFO):
+        log_event(logging.getLogger("short_dte.test"), event, details)
+    assert "tuple-fixture-secret" not in path.read_text(encoding="utf-8")
+    assert "tuple-fixture-secret" not in caplog.text
+    assert details["items"][0]["api_key"] == "tuple-fixture-secret"
+
+
+@pytest.mark.parametrize("changes", [{"delta": 2}, {"gamma": -1}, {"vega": -1}])
+def test_leg_greeks_use_quote_constraints(changes):
+    with pytest.raises(ValidationError):
+        OptionLeg(**(dict(contract=contract(), side="BUY", quantity=1, expected_price="1",
+                          delta=0.5, gamma=0.1, theta=-0.2, vega=0.1) | changes))

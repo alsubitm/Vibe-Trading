@@ -10,7 +10,9 @@ from ..domain.events import AuditEvent
 
 def event_payload(event: AuditEvent, details: dict[str, Any] | None = None) -> dict:
     payload = event.model_dump(mode="json")
-    payload["details"] = details or {}
+    # Normalize tuples to JSON arrays before the shared dict/list redaction walk.
+    # Reject opaque objects and nonfinite numbers rather than stringify secrets.
+    payload["details"] = json.loads(json.dumps(details if details is not None else {}, allow_nan=False))
     return redact_payload(payload)
 
 

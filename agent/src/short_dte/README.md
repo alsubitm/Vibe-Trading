@@ -17,6 +17,8 @@ instead of duplicating it or guessing US holidays. No new calendar dependency.
   date and calendar DTE use America/New_York, including DST.
 - Domain models reject unknown fields. Contracts are frozen; chain members,
   candidate legs and portfolio positions are immutable tuples.
+  Candidate metadata/probability mappings remain mutable; callers must not
+  treat frozen model attributes as a deep-immutability guarantee.
 - Missing provider fields remain None. Zero option bids are representable for
   downstream liquidity rejection. Freshness is an explicit runtime check with
   an injected reference timestamp, never a hidden wall-clock read.
@@ -30,13 +32,18 @@ instead of duplicating it or guessing US holidays. No new calendar dependency.
 - YAML requires explicit schema_version 1. Unknown fields, duplicate keys,
   unsupported versions and live mode fail. Config and nested settings are frozen;
   universe uses a tuple. No environment overrides or credential loading.
+  Direct configuration construction also rejects bool/float schema versions
+  and numeric substitutes for the disabled live flag.
 - The SHA-256 hash covers canonical JSON of the validated, default-expanded
   configuration. YAML key order/comments do not change it; setting changes do.
 - Every research audit event has version, UTC timestamp, event/run IDs and config
   hash. The caller supplies IDs/time for replay determinism and an explicit
   dedicated research path. The shared ledger provides locking, sequencing,
-  fsync and hash chaining. Write failures propagate. Do not use the live ledger
+  fsync and hash chaining. Open/write failures propagate; the shared ledger
+  warns and degrades to flush-only if fsync is unsupported. Do not use the live ledger
   path or include credentials in event labels/details.
+  Audit details must be JSON-serializable with finite numbers. Tuple arrays
+  normalize to lists before redaction; opaque objects fail before writing.
 
 ## Validation
 
