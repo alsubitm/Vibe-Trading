@@ -1,8 +1,8 @@
-name: Short DTE foundation
+name: Short DTE offline checks
 
 on:
   push:
-    branches: ['feature/short-dte-options-m0*']
+    branches: ['feature/short-dte-options-m0*', 'feature/short-dte-options-m1*']
   pull_request:
     paths:
       - 'agent/src/short_dte/**'
@@ -30,9 +30,14 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install offline-test dependencies
-        run: python -m pip install 'pydantic>=2,<3' 'PyYAML>=6' tzdata pytest pytest-socket pytest-cov python-dotenv build 'setuptools>=77' wheel
+        run: python -m pip install 'pydantic>=2,<3' 'PyYAML>=6' 'duckdb>=1.2' 'ruff>=0.9,<1' tzdata pytest pytest-socket pytest-cov python-dotenv build 'setuptools>=77' wheel
+      - name: Repository safety checks
+        if: runner.os == 'Linux'
+        run: bash tools/ci_grep_gates.sh
+      - name: Lint Short DTE modules
+        run: python -m ruff check agent/src/short_dte agent/tests/short_dte
       - name: Test foundation without network access
-        run: python -m pytest agent/tests/short_dte --disable-socket --cov=src.short_dte.domain --cov-report=term-missing --cov-fail-under=90 -q
+        run: python -m pytest agent/tests/short_dte --disable-socket --cov=src.short_dte.domain --cov=src.short_dte.data --cov-config=agent/tests/short_dte/coverage.ini --cov-report=term-missing --cov-fail-under=90 -q
       - name: Build distribution
         run: python -m build --wheel --no-isolation --outdir dist-short-dte
       - name: Verify packaged defaults
