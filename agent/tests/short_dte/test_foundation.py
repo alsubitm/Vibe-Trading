@@ -73,6 +73,9 @@ def test_contract_identity_is_frozen_and_sizes_positive():
 
 
 def test_bar_invariants():
+    bar = UnderlyingBar(symbol="SPY", timeframe="1m", timestamp=NOW, open="600", high="601",
+                        low="599", close="600", volume=0, source="fixture")
+    assert UnderlyingBar.model_validate_json(bar.model_dump_json()) == bar
     with pytest.raises(ValidationError):
         UnderlyingBar(symbol="SPY", timeframe="1m", timestamp=NOW, open="600", high="601",
                       low="599", close="602", volume=0, source="fixture")
@@ -205,7 +208,8 @@ def test_structured_logging_has_hash_and_redaction(caplog):
 def test_order_candidate_portfolio_roundtrips_and_validation():
     leg = OptionLeg(contract=contract(), side="BUY", quantity=1, expected_price="1",
                     delta=0.5, gamma=0.1, theta=-0.2, vega=0.1)
-    exit_plan = ExitPlan(time_stop=NOW + timedelta(hours=1), profit_target="10", maximum_loss="100")
+    exit_plan = ExitPlan(time_stop=NOW + timedelta(hours=1), forced_exit=NOW + timedelta(hours=2),
+                         profit_target_pct_max_profit=50, stop_loss_pct_max_loss=50)
     data = dict(candidate_id=UUID(int=1), timestamp=NOW, underlying="SPY", strategy_id="fixture",
                 legs=[leg], net_debit_credit="1", max_profit=None, max_loss="100",
                 position_delta=0.5, position_gamma=0.1, position_theta=-0.2, position_vega=0.1,
@@ -215,6 +219,7 @@ def test_order_candidate_portfolio_roundtrips_and_validation():
     assert TradeCandidate.model_validate_json(candidate.model_dump_json()) == candidate
     for changes in ({"legs": []}, {"max_loss": None}, {"max_loss": "-1"},
                     {"total_score": 101}, {"probability_estimates": {"profit": 1.1}},
+                    {"exit_plan": ExitPlan(forced_exit=NOW)},
                     {"exit_plan": exit_plan.model_copy(update={"time_stop": NOW})}):
         with pytest.raises(ValidationError):
             TradeCandidate(**(data | changes))
@@ -230,6 +235,30 @@ def test_order_candidate_portfolio_roundtrips_and_validation():
     assert PortfolioState.model_validate_json(portfolio.model_dump_json()) == portfolio
     with pytest.raises(ValidationError):
         OptionLeg(**(leg.model_dump() | {"quantity": 0}))
+
+
+def test_exit_plan_matches_spec_and_roundtrips():
+    plan = ExitPlan(forced_exit=NOW + timedelta(hours=2),
+                    underlying_invalidation_level="590", trailing_logic={"enabled": False})
+    assert plan.time_stop is None
+    assert ExitPlan.model_validate_json(plan.model_dump_json()) == plan
+
+
+@pytest.mark.parametrize("changes", [
+    {"forced_exit": datetime(2026, 11, 2)},
+    {"time_stop": datetime(2026, 11, 2)},
+    {"time_stop": NOW + timedelta(hours=3)},
+    {"profit_target_pct_max_profit": 101}, {"stop_loss_pct_max_loss": -1},
+    {"underlying_invalidation_level": "0"},
+])
+def test_invalid_exit_plan_fails(changes):
+    with pytest.raises(ValidationError):
+        ExitPlan(**({"forced_exit": NOW + timedelta(hours=2)} | changes))
+
+
+def test_forced_exit_is_required():
+    with pytest.raises(ValidationError):
+        ExitPlan(time_stop=NOW + timedelta(hours=1))
 
 
 @pytest.mark.parametrize("changes", [

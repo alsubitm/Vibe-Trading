@@ -19,6 +19,10 @@ instead of duplicating it or guessing US holidays. No new calendar dependency.
   candidate legs and portfolio positions are immutable tuples.
   Candidate metadata/probability mappings remain mutable; callers must not
   treat frozen model attributes as a deep-immutability guarantee.
+- Exit plans follow master specification §40: mandatory aware forced_exit,
+  optional time_stop, percentage targets/stops, underlying invalidation level
+  and trailing-logic vocabulary. Candidate deadlines must follow creation;
+  time_stop cannot exceed forced_exit. Execution of exits is a later milestone.
 - Missing provider fields remain None. Zero option bids are representable for
   downstream liquidity rejection. Freshness is an explicit runtime check with
   an injected reference timestamp, never a hidden wall-clock read.
@@ -51,6 +55,7 @@ From the repository root: `python -m pytest agent/tests/short_dte --disable-sock
 The standard full-suite CI discovers these tests automatically. The dedicated
 Short DTE workflow additionally runs on the feature branch and relevant pull
 requests, tests Python 3.11/3.14 on Linux/Windows, and checks packaged defaults.
+It enforces the specification's 90% domain coverage floor.
 
 Milestone 0 acceptance: imports and packaged defaults work; malformed records,
 naive times, invalid configs and future/stale data fail; DST/session boundaries,

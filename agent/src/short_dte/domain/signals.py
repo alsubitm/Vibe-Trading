@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, JsonValue, model_validator
 
-from .base import DomainModel, NonnegativeMoney, Quantity, Text, UTCTimestamp
+from .base import DomainModel, NonnegativeMoney, PositiveMoney, Quantity, Text, UTCTimestamp
 from .options import OptionContract
 
 Score = Annotated[float, Field(ge=0, le=100)]
@@ -24,10 +24,18 @@ class OptionLeg(DomainModel):
 
 
 class ExitPlan(DomainModel):
-    time_stop: UTCTimestamp
-    profit_target: NonnegativeMoney
-    maximum_loss: NonnegativeMoney
-    structural_stop: str | None = None
+    profit_target_pct_max_profit: Annotated[float, Field(gt=0, le=100)] | None = None
+    stop_loss_pct_max_loss: Annotated[float, Field(gt=0, le=100)] | None = None
+    underlying_invalidation_level: PositiveMoney | None = None
+    time_stop: UTCTimestamp | None = None
+    forced_exit: UTCTimestamp
+    trailing_logic: dict[str, JsonValue] | None = None
+
+    @model_validator(mode="after")
+    def validate_deadlines(self):
+        if self.time_stop is not None and self.time_stop > self.forced_exit:
+            raise ValueError("time stop cannot follow forced exit")
+        return self
 
 
 class TradeCandidate(DomainModel):
@@ -58,6 +66,8 @@ class TradeCandidate(DomainModel):
     def validate_candidate(self):
         if not self.legs or any(leg.contract.underlying != self.underlying for leg in self.legs):
             raise ValueError("candidate requires legs with matching underlying")
-        if self.exit_plan.time_stop <= self.timestamp:
+        if self.exit_plan.forced_exit <= self.timestamp:
+            raise ValueError("forced exit must follow candidate timestamp")
+        if self.exit_plan.time_stop is not None and self.exit_plan.time_stop <= self.timestamp:
             raise ValueError("time stop must follow candidate timestamp")
         return self
