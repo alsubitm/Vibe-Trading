@@ -24,6 +24,12 @@ class DTEConfig(DomainModel):
     four_seven_dte: BucketConfig = BucketConfig(minimum_score=68)
 
 
+class HistoricalDataConfig(DomainModel):
+    # IV is a decimal volatility (1.0 = 100%). This is an integrity ceiling,
+    # not a volatility signal or a calibrated strategy threshold.
+    maximum_implied_volatility: Annotated[float, Field(gt=0)] = 10.0
+
+
 class ShortDTEConfig(DomainModel):
     schema_version: Literal[1]
     mode: Literal["research", "replay", "paper"] = "research"
@@ -32,6 +38,7 @@ class ShortDTEConfig(DomainModel):
     exchange_timezone: Literal["America/New_York"] = "America/New_York"
     freshness: FreshnessConfig = FreshnessConfig()
     buckets: DTEConfig = DTEConfig()
+    historical_data: HistoricalDataConfig = HistoricalDataConfig()
 
     @field_validator("schema_version", mode="before")
     @classmethod

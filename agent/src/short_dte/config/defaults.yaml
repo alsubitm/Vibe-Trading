@@ -3,6 +3,8 @@ mode: research
 live_trading_enabled: false
 universe: [SPX, SPY, QQQ]
 exchange_timezone: America/New_York
+historical_data:
+  maximum_implied_volatility: 10.0
 freshness:
   underlying_quote_seconds: 3
   option_quote_seconds: 5

@@ -64,6 +64,10 @@ audit redaction/chaining and I/O failures are covered; no live execution wiring.
 
 ## Later milestones
 
+The [M1 local historical importer](data/README.md) now accepts explicit canonical
+JSONL archives and stores checked Parquet batches. Its offline implementation
+does not certify the required 20 real sessions; no historical dataset is bundled.
+
 Package seams reserve data providers, deterministic features, strategies,
 scoring, risk, execution simulation, replay, paper, orchestration and optional
 LLM explanations. No placeholder returns imply those engines are implemented.

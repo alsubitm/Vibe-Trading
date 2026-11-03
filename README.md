@@ -636,6 +636,15 @@ vibe-trading research-artifact search --query "NVDA"
 
 ---
 
+## Short DTE historical research importer
+
+The fork's research-only `src.short_dte.data` module imports explicitly supplied
+canonical historical JSONL data into checked Parquet archives for SPX/SPY/QQQ.
+It preserves event/publication timestamps and rejects stale, future or corrupt
+observations. It does not obtain a data subscription, submit orders or establish
+real-session acceptance. See the [importer guide](agent/src/short_dte/data/README.md)
+for the local command, schema, synthetic example and remaining M1 requirements.
+
 ## 📡 Data Sources & Smart Fallback
 
 One `get_market_data` call, **29 market-data sources**, one of them the optional **QVeris** premium marketplace. Set `source: "auto"` — the loader picks by symbol, then walks a per-market chain ordered by **IP-ban risk**: never-banned public sources first, throttled / key-gated ones last. Zero config, no single point of failure.
